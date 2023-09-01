@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  client-typescript:
+    container_name: client-typescript
+    hostname: client-typescript
+    build:
+      context: ./rest-client
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - server-express
+    networks:
+      - req-res-scale-out-hands-on
+
+  server-express:
+    build:
+      context: ./rest-server
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+    restart: always
+    networks:
+      - req-res-scale-out-hands-on
+
+  lb-nginx:
+    hostname: lb-nginx
+    container_name: lb-nginx
+    image: nginx:mainline-alpine3.18-slim
+    depends_on:
+      - server-express
+    ports:
+      - "4000:4000"
+    volumes:
+      - './nginx.conf:/etc/nginx/nginx.conf'
+    networks:
+      - req-res-scale-out-hands-on
+
+networks:
+  req-res-scale-out-hands-on:
+    name: req-res-scale-out-hands-on
+    driver: bridge

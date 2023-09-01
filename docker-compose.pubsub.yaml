@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  message-producer:
+    container_name: message-producer
+    hostname: message-producer
+    build:
+      context: ./message-producer
+      dockerfile: Dockerfile
+    restart: always
+    networks:
+      - hands-on-scale-out
+
+  message-consumer:
+    build:
+      context: ./message-consumer
+      dockerfile: Dockerfile
+    restart: always
+    networks:
+      - hands-on-scale-out
+
+networks:
+  hands-on-scale-out:
+    name: hands-on-scale-out
+    external: true
