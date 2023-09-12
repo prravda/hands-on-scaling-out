@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  memgraph-platform:
+    container_name: memgraph-platform
+    hostname: memgraph-platform
+    image: memgraph/memgraph-platform:2.10.2-memgraph2.10.1-lab2.8.1
+    ports:
+      - "7687:7687"
+      - "7444:7444"
+      - "3000:3000"
+    environment:
+      MEMGRAPH_USER: test
+      MEMGRAPH_PASSWORD: testMemGraph
+    volumes:
+      - memgraph-data:/var/lib/memgraph
+
+volumes:
+  memgraph-data:
+    name: memgraph-data
