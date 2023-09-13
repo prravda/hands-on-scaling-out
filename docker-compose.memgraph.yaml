@@ -18,3 +18,7 @@ services:
 volumes:
   memgraph-data:
     name: memgraph-data
+networks:
+  memgraph-data:
+    name: memgraph-data
+    driver: bridge

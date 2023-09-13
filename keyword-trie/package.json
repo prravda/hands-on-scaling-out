@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "neo4j-driver": "^5.12.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2"
   },
