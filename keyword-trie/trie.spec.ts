@@ -1,28 +1,53 @@
-import { Trie } from "./trie";
+import { KeywordSearchMachine } from "./trie-with-aho-corasick";
+import {
+  ExampleTitleAndExpectedKeywordList,
+  KeywordListWithoutWhiteSpace,
+  KeywordListWithWhiteSpace,
+} from "./test-dataset-for-trie";
 
-describe("test: trie search", () => {
-  let trieStructure: Trie;
-  beforeEach(() => {
-    trieStructure = new Trie();
+describe("testing for trie and aho-corasick pattern matching searching", () => {
+  const keywordSearchMachine = new KeywordSearchMachine();
+
+  // inserting keywords
+  for (const word of [
+    ...KeywordListWithoutWhiteSpace,
+    ...KeywordListWithWhiteSpace,
+  ]) {
+    keywordSearchMachine.insert(word);
+  }
+
+  it("[ case 0 ] should find all matched keywords as a list", () => {
+    const { title, expectedKeywordList } =
+      ExampleTitleAndExpectedKeywordList[0];
+    const result = keywordSearchMachine.searchInSentence(title);
+    expect(result.sort()).toEqual(expectedKeywordList.sort());
   });
 
-  it("should be defined", () => {
-    expect(trieStructure).toBeDefined();
+  it("[ case 1 ] should find all matched keywords as a list", () => {
+    const { title, expectedKeywordList } =
+      ExampleTitleAndExpectedKeywordList[1];
+    const result = keywordSearchMachine.searchInSentence(title);
+    expect(result.sort()).toEqual(expectedKeywordList.sort());
   });
 
-  it("should insert keyword and find it", () => {
-    const keywordToAdd = ["SSD", "SSH", "BHC", "BBQ"];
-    keywordToAdd.forEach((keyword) => trieStructure.insert(keyword));
-
-    expect(trieStructure.search(keywordToAdd[0])).toBe(true);
+  it("[ case 2 ] should find all matched keywords as a list", () => {
+    const { title, expectedKeywordList } =
+      ExampleTitleAndExpectedKeywordList[2];
+    const result = keywordSearchMachine.searchInSentence(title);
+    expect(result.sort()).toEqual(expectedKeywordList.sort());
   });
 
-  it("should insert keyword but can not find not inserted keyword", () => {
-    const keywordToAdd = ["SSD", "SSH", "BHC", "BBQ"];
-    keywordToAdd.forEach((keyword) => trieStructure.insert(keyword));
+  it("[ case 2 ] should find all matched keywords as a list", () => {
+    const { title, expectedKeywordList } =
+      ExampleTitleAndExpectedKeywordList[2];
+    const result = keywordSearchMachine.searchInSentence(title);
+    expect(result.sort()).toEqual(expectedKeywordList.sort());
+  });
 
-    const notInsertedKeyword = "BBC";
-
-    expect(trieStructure.search(notInsertedKeyword)).toBe(false);
+  it("[ case 3 ] should find all matched keywords as a list", () => {
+    const { title, expectedKeywordList } =
+      ExampleTitleAndExpectedKeywordList[3];
+    const result = keywordSearchMachine.searchInSentence(title);
+    expect(result.sort()).toEqual(expectedKeywordList.sort());
   });
 });
