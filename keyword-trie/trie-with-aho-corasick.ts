@@ -1,5 +1,3 @@
-import { KeywordListWithoutWhiteSpace } from "./test-dataset-for-trie";
-
 export class TrieNode {
   children: Map<number, TrieNode>;
   isLastWord: boolean;
@@ -11,12 +9,56 @@ export class TrieNode {
     this.fail = null;
     this.output = [];
   }
+
+  public toJSON(): Record<string, any> {
+    const jsonTrieNode: Record<string, any> = {
+      isLastWord: this.isLastWord,
+      children: {},
+      fail: this.fail,
+      output: this.output,
+    };
+
+    for (const [charCode, child] of this.children) {
+      jsonTrieNode.children[charCode] = child.toJSON();
+    }
+
+    return jsonTrieNode;
+  }
 }
 
 export class KeywordSearchMachine {
   private readonly rootNode: TrieNode;
   constructor() {
     this.rootNode = new TrieNode();
+  }
+  public toJSON(): Record<string, any> {
+    return this.rootNode.toJSON();
+  }
+
+  public static fromJSON(jsonData: Record<string, any>): KeywordSearchMachine {
+    const trie = new KeywordSearchMachine();
+    trie.rootNode.children = new Map<number, TrieNode>();
+
+    const buildTrieFromJSON = (
+      trieNodeData: Record<string, any>,
+      trieNode: TrieNode
+    ) => {
+      trieNode.isLastWord = trieNodeData.isLastWord;
+      trieNode.output = trieNodeData.output;
+      trieNode.fail = trieNodeData.fail;
+
+      for (const charCode in trieNodeData.children) {
+        const childData = trieNodeData.children[charCode];
+        const childTrieNode = new TrieNode();
+        trieNode.children.set(Number(charCode), childTrieNode);
+
+        buildTrieFromJSON(childData, childTrieNode);
+      }
+    };
+
+    buildTrieFromJSON(jsonData, trie.rootNode);
+
+    return trie;
   }
 
   private charToIndex(character: string): number {
@@ -40,7 +82,7 @@ export class KeywordSearchMachine {
     this.buildFailureLinks();
   }
 
-  private buildFailureLinks(): void {
+  public buildFailureLinks(): void {
     const queue: TrieNode[] = [];
     this.rootNode.fail = null;
 
