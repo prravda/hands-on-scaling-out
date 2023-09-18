@@ -5,6 +5,8 @@ import {
   KeywordListWithWhiteSpace,
 } from "./test-dataset-for-trie";
 
+import * as fs from "fs";
+
 describe("testing for trie and aho-corasick pattern matching searching", () => {
   let keywordSearchMachine: KeywordSearchMachine;
 
@@ -86,6 +88,12 @@ describe("testing for trie serialization / de-serialization", () => {
   it("should works well when find keywords from a string", () => {
     const serializedResult = keywordSearchMachineInstance.toJSON();
     const parsedResult = KeywordSearchMachine.fromJSON(serializedResult);
+
+    fs.writeFileSync(
+      "original.txt",
+      JSON.stringify(keywordSearchMachineInstance)
+    );
+    fs.writeFileSync("from-serialized.txt", JSON.stringify(parsedResult));
 
     const { title, expectedKeywordList } =
       ExampleTitleAndExpectedKeywordList[0];
