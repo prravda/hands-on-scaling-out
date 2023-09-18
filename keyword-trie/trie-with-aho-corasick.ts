@@ -57,7 +57,7 @@ export class KeywordSearchMachine {
     };
 
     buildTrieFromJSON(jsonData, trie.rootNode);
-
+    trie.buildFailureLinks();
     return trie;
   }
 
