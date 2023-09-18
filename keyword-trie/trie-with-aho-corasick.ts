@@ -1,25 +1,62 @@
 export class TrieNode {
-  children: Map<number, TrieNode>;
-  isLastWord: boolean;
-  fail: TrieNode | null;
-  output: string[];
+  accessor children: Map<number, TrieNode>;
+  accessor isLastWord: boolean;
+  accessor failNodeId: number | null;
+  accessor failNode: TrieNode | null;
+  accessor output: string[];
   constructor() {
     this.children = new Map<number, TrieNode>();
     this.isLastWord = false;
-    this.fail = null;
+    this.failNodeId = null;
+    this.failNode = null;
     this.output = [];
   }
 
   public toJSON(): Record<string, any> {
+    // set fail as null for avoiding too much recursive call
+    // and buildFailureGraph again after de-serialization
     const jsonTrieNode: Record<string, any> = {
       isLastWord: this.isLastWord,
       children: {},
-      fail: this.fail,
+      failNodeId: this.failNodeId,
+      failNode: null,
       output: this.output,
     };
 
     for (const [charCode, child] of this.children) {
       jsonTrieNode.children[charCode] = child.toJSON();
+    }
+
+    return jsonTrieNode;
+  }
+
+  public toJSONIteratively(): Record<string, any> {
+    // iterative version of toJSON method
+    // for avoiding exceeding the maximum call stack
+    const jsonTrieNode: Record<string, any> = {
+      isLastWord: this.isLastWord,
+      children: {},
+      fail: this.failNodeId,
+      output: this.output,
+    };
+
+    const stack: {
+      node: TrieNode;
+      jsonTrieNode: Record<string, any>;
+    }[] = [{ node: this, jsonTrieNode }];
+
+    while (stack.length > 0) {
+      const { node, jsonTrieNode } = stack.pop()!;
+      for (const [charCode, child] of node.children) {
+        const childJSONTrieNode: Record<string, any> = {
+          isLastWord: child.isLastWord,
+          children: {},
+          fail: child.failNodeId,
+          output: child.output,
+        };
+        jsonTrieNode.children[charCode] = childJSONTrieNode;
+        stack.push({ node: child, jsonTrieNode: childJSONTrieNode });
+      }
     }
 
     return jsonTrieNode;
@@ -35,9 +72,16 @@ export class KeywordSearchMachine {
     return this.rootNode.toJSON();
   }
 
+  public toJSONIteratively(): Record<string, any> {
+    return this.rootNode.toJSONIteratively();
+  }
+
   public static fromJSON(jsonData: Record<string, any>): KeywordSearchMachine {
     const trie = new KeywordSearchMachine();
     trie.rootNode.children = new Map<number, TrieNode>();
+
+    // storing trie into the Map object for restoring failure link
+    const nodesMap = new Map<number, TrieNode>();
 
     const buildTrieFromJSON = (
       trieNodeData: Record<string, any>,
@@ -45,19 +89,54 @@ export class KeywordSearchMachine {
     ) => {
       trieNode.isLastWord = trieNodeData.isLastWord;
       trieNode.output = trieNodeData.output;
-      trieNode.fail = trieNodeData.fail;
+      trieNode.failNodeId = trieNodeData.failNodeId;
+
+      trieNode.failNode =
+        trieNode.failNodeId !== null
+          ? nodesMap.get(trieNode.failNodeId) || null
+          : null;
 
       for (const charCode in trieNodeData.children) {
         const childData = trieNodeData.children[charCode];
         const childTrieNode = new TrieNode();
+
         trieNode.children.set(Number(charCode), childTrieNode);
+        nodesMap.set(Number(charCode), childTrieNode);
 
         buildTrieFromJSON(childData, childTrieNode);
       }
     };
 
     buildTrieFromJSON(jsonData, trie.rootNode);
+    return trie;
+  }
 
+  public static fromJSONIteratively(
+    jsonData: Record<string, any>
+  ): KeywordSearchMachine {
+    const trie = new KeywordSearchMachine();
+    trie.rootNode.children = new Map<number, TrieNode>();
+
+    const stack: { node: TrieNode; trieNodeData: Record<string, any> }[] = [
+      { node: trie.rootNode, trieNodeData: jsonData },
+    ];
+
+    while (stack.length > 0) {
+      const { node, trieNodeData } = stack.pop()!;
+      node.isLastWord = trieNodeData.isLastWord;
+      node.output = trieNodeData.output;
+      node.failNodeId = trieNodeData.fail;
+
+      for (const charCode in trieNodeData.children) {
+        const childData = trieNodeData.children[charCode];
+        const childTrieNode = new TrieNode();
+        node.children.set(Number(charCode), childTrieNode);
+
+        stack.push({ node: childTrieNode, trieNodeData: childData });
+      }
+    }
+
+    trie.buildFailureLinks();
     return trie;
   }
 
@@ -78,16 +157,29 @@ export class KeywordSearchMachine {
     currentRoot.isLastWord = true;
     currentRoot.output.push(keyword);
 
-    // build failure link
-    this.buildFailureLinks();
+    // build failure graph
+    this.buildFailureGraph();
   }
 
-  public buildFailureLinks(): void {
+  private assignUniqueIds(): void {
+    let idCounter = 0;
+    const stack: TrieNode[] = [this.rootNode];
+
+    while (stack.length > 0) {
+      const node = stack.pop()!;
+      node.failNodeId = idCounter++;
+      for (const child of node.children.values()) {
+        stack.push(child);
+      }
+    }
+  }
+
+  private buildFailureLinks(): void {
     const queue: TrieNode[] = [];
-    this.rootNode.fail = null;
+    this.rootNode.failNodeId = null;
 
     for (const child of this.rootNode.children.values()) {
-      child.fail = this.rootNode;
+      child.failNode = this.rootNode;
       queue.push(child);
     }
 
@@ -95,19 +187,24 @@ export class KeywordSearchMachine {
       const node = queue.shift()!;
 
       for (const [charCode, child] of node.children) {
-        let failure = node.fail;
+        let failure = node.failNode;
 
         while (failure !== null && !failure.children.has(charCode)) {
-          failure = failure.fail!;
+          failure = failure.failNode!;
         }
 
-        child.fail = failure?.children.get(charCode) || this.rootNode;
+        child.failNode = failure?.children.get(charCode) || this.rootNode;
 
-        child.output = [...child.output, ...child.fail.output];
+        child.output = [...child.output, ...child.failNode.output];
 
         queue.push(child);
       }
     }
+  }
+
+  private buildFailureGraph() {
+    this.assignUniqueIds();
+    this.buildFailureLinks();
   }
 
   public searchInSentence(sentence: string): string[] {
@@ -121,7 +218,7 @@ export class KeywordSearchMachine {
         !currentRoot.children.has(indexOfCharacter) &&
         currentRoot !== this.rootNode
       ) {
-        currentRoot = currentRoot.fail!;
+        currentRoot = currentRoot.failNode!;
       }
 
       currentRoot = currentRoot.children.get(indexOfCharacter) || this.rootNode;
