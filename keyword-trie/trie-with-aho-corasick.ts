@@ -24,6 +24,38 @@ export class TrieNode {
 
     return jsonTrieNode;
   }
+
+  public toJSONIteratively(): Record<string, any> {
+    // iterative version of toJSON method
+    // for avoiding exceeding the maximum call stack
+    const jsonTrieNode: Record<string, any> = {
+      isLastWord: this.isLastWord,
+      children: {},
+      fail: this.fail,
+      output: this.output,
+    };
+
+    const stack: {
+      node: TrieNode;
+      jsonTrieNode: Record<string, any>;
+    }[] = [{ node: this, jsonTrieNode }];
+
+    while (stack.length > 0) {
+      const { node, jsonTrieNode } = stack.pop()!;
+      for (const [charCode, child] of node.children) {
+        const childJSONTrieNode: Record<string, any> = {
+          isLastWord: child.isLastWord,
+          children: {},
+          fail: child.fail,
+          output: child.output,
+        };
+        jsonTrieNode.children[charCode] = childJSONTrieNode;
+        stack.push({ node: child, jsonTrieNode: childJSONTrieNode });
+      }
+    }
+
+    return jsonTrieNode;
+  }
 }
 
 export class KeywordSearchMachine {
@@ -33,6 +65,10 @@ export class KeywordSearchMachine {
   }
   public toJSON(): Record<string, any> {
     return this.rootNode.toJSON();
+  }
+
+  public toJSONIteratively(): Record<string, any> {
+    return this.rootNode.toJSONIteratively();
   }
 
   public static fromJSON(jsonData: Record<string, any>): KeywordSearchMachine {
@@ -57,6 +93,34 @@ export class KeywordSearchMachine {
     };
 
     buildTrieFromJSON(jsonData, trie.rootNode);
+    trie.buildFailureLinks();
+    return trie;
+  }
+
+  public static fromJSONIteratively(
+    jsonData: Record<string, any>
+  ): KeywordSearchMachine {
+    const trie = new KeywordSearchMachine();
+    trie.rootNode.children = new Map<number, TrieNode>();
+
+    const stack: { node: TrieNode; trieNodeData: Record<string, any> }[] = [
+      { node: trie.rootNode, trieNodeData: jsonData },
+    ];
+
+    while (stack.length > 0) {
+      const { node, trieNodeData } = stack.pop()!;
+      node.isLastWord = trieNodeData.isLastWord;
+      node.output = trieNodeData.output;
+      node.fail = trieNodeData.fail;
+
+      for (const charCode in trieNodeData.children) {
+        const childData = trieNodeData.children[charCode];
+        const childTrieNode = new TrieNode();
+        node.children.set(Number(charCode), childTrieNode);
+
+        stack.push({ node: childTrieNode, trieNodeData: childData });
+      }
+    }
     trie.buildFailureLinks();
     return trie;
   }
