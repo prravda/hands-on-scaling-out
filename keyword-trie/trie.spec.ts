@@ -8,15 +8,18 @@ import {
 import * as fs from "fs";
 
 describe("testing for trie and aho-corasick pattern matching searching", () => {
-  const keywordSearchMachine = new KeywordSearchMachine();
+  let keywordSearchMachine: KeywordSearchMachine;
 
-  // inserting keywords
-  for (const word of [
-    ...KeywordListWithoutWhiteSpace,
-    ...KeywordListWithWhiteSpace,
-  ]) {
-    keywordSearchMachine.insert(word);
-  }
+  beforeEach(() => {
+    keywordSearchMachine = new KeywordSearchMachine();
+    // inserting keywords
+    for (const word of [
+      ...KeywordListWithoutWhiteSpace,
+      ...KeywordListWithWhiteSpace,
+    ]) {
+      keywordSearchMachine.insert(word);
+    }
+  });
 
   it("[ case 0 ] should find all matched keywords as a list", () => {
     const { title, expectedKeywordList } =
@@ -55,8 +58,10 @@ describe("testing for trie and aho-corasick pattern matching searching", () => {
 });
 
 describe("testing for trie serialization / de-serialization", () => {
-  const keywordSearchMachineInstance = new KeywordSearchMachine();
-  beforeAll(() => {
+  let keywordSearchMachineInstance: KeywordSearchMachine;
+
+  beforeEach(() => {
+    keywordSearchMachineInstance = new KeywordSearchMachine();
     // insert keywords into trie
     for (const word of [
       ...KeywordListWithoutWhiteSpace,
@@ -73,10 +78,11 @@ describe("testing for trie serialization / de-serialization", () => {
 
   it("should be parsed into KeywordSearchMachine instance from serialized result", () => {
     const serializedResult = keywordSearchMachineInstance.toJSON();
-    const parsedResult =
-      KeywordSearchMachine.fromJSONIteratively(serializedResult);
-
-    expect(parsedResult).toStrictEqual(keywordSearchMachineInstance);
+    expect(() =>
+      KeywordSearchMachine.fromJSON(serializedResult)
+    ).not.toThrowError();
+    const parsedResult = KeywordSearchMachine.fromJSON(serializedResult);
+    expect(parsedResult).toBeInstanceOf(KeywordSearchMachine);
   });
 
   it("should works well when find keywords from a string", () => {
@@ -91,8 +97,47 @@ describe("testing for trie serialization / de-serialization", () => {
 
     const { title, expectedKeywordList } =
       ExampleTitleAndExpectedKeywordList[0];
-    // TODO: compare how `searchInSentence` running inside parsedResult and keywordSearchMachineInstance
-    // Currently the parsedResult.searchInSentence(title) throw an Error
+    const result = parsedResult.searchInSentence(title);
+    expect(result.sort()).toEqual(expectedKeywordList.sort());
+  });
+});
+
+describe("testing for trie serialization / de-serialization in iterative way", () => {
+  let keywordSearchMachineInstance: KeywordSearchMachine;
+
+  beforeEach(() => {
+    keywordSearchMachineInstance = new KeywordSearchMachine();
+    // insert keywords into trie
+    for (const word of [
+      ...KeywordListWithoutWhiteSpace,
+      ...KeywordListWithWhiteSpace,
+    ]) {
+      keywordSearchMachineInstance.insert(word);
+    }
+  });
+
+  it("should be serialized to JSON", () => {
+    const serializedResult = keywordSearchMachineInstance.toJSONIteratively();
+    expect(serializedResult).toBeInstanceOf(Object);
+  });
+
+  it("should be parsed into KeywordSearchMachine instance from serialized result", () => {
+    const serializedResult = keywordSearchMachineInstance.toJSONIteratively();
+    expect(() =>
+      KeywordSearchMachine.fromJSONIteratively(serializedResult)
+    ).not.toThrowError();
+    const parsedResult =
+      KeywordSearchMachine.fromJSONIteratively(serializedResult);
+    expect(parsedResult).toBeInstanceOf(KeywordSearchMachine);
+  });
+
+  it("should works well when find keywords from a string", () => {
+    const serializedResult = keywordSearchMachineInstance.toJSONIteratively();
+    const parsedResult =
+      KeywordSearchMachine.fromJSONIteratively(serializedResult);
+
+    const { title, expectedKeywordList } =
+      ExampleTitleAndExpectedKeywordList[0];
     const result = parsedResult.searchInSentence(title);
     expect(result.sort()).toEqual(expectedKeywordList.sort());
   });

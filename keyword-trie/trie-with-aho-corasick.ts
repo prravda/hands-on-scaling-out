@@ -1,25 +1,20 @@
 export class TrieNode {
-  accessor children: Map<number, TrieNode>;
-  accessor isLastWord: boolean;
-  accessor failNodeId: number | null;
-  accessor failNode: TrieNode | null;
-  accessor output: string[];
+  children: Map<number, TrieNode>;
+  isLastWord: boolean;
+  fail: TrieNode | null;
+  output: string[];
   constructor() {
     this.children = new Map<number, TrieNode>();
     this.isLastWord = false;
-    this.failNodeId = null;
-    this.failNode = null;
+    this.fail = null;
     this.output = [];
   }
 
   public toJSON(): Record<string, any> {
-    // set fail as null for avoiding too much recursive call
-    // and buildFailureGraph again after de-serialization
     const jsonTrieNode: Record<string, any> = {
       isLastWord: this.isLastWord,
       children: {},
-      failNodeId: this.failNodeId,
-      failNode: null,
+      fail: this.fail,
       output: this.output,
     };
 
@@ -36,7 +31,7 @@ export class TrieNode {
     const jsonTrieNode: Record<string, any> = {
       isLastWord: this.isLastWord,
       children: {},
-      fail: this.failNodeId,
+      fail: this.fail,
       output: this.output,
     };
 
@@ -51,7 +46,7 @@ export class TrieNode {
         const childJSONTrieNode: Record<string, any> = {
           isLastWord: child.isLastWord,
           children: {},
-          fail: child.failNodeId,
+          fail: child.fail,
           output: child.output,
         };
         jsonTrieNode.children[charCode] = childJSONTrieNode;
@@ -80,34 +75,25 @@ export class KeywordSearchMachine {
     const trie = new KeywordSearchMachine();
     trie.rootNode.children = new Map<number, TrieNode>();
 
-    // storing trie into the Map object for restoring failure link
-    const nodesMap = new Map<number, TrieNode>();
-
     const buildTrieFromJSON = (
       trieNodeData: Record<string, any>,
       trieNode: TrieNode
     ) => {
       trieNode.isLastWord = trieNodeData.isLastWord;
       trieNode.output = trieNodeData.output;
-      trieNode.failNodeId = trieNodeData.failNodeId;
-
-      trieNode.failNode =
-        trieNode.failNodeId !== null
-          ? nodesMap.get(trieNode.failNodeId) || null
-          : null;
+      trieNode.fail = trieNodeData.fail;
 
       for (const charCode in trieNodeData.children) {
         const childData = trieNodeData.children[charCode];
         const childTrieNode = new TrieNode();
-
         trieNode.children.set(Number(charCode), childTrieNode);
-        nodesMap.set(Number(charCode), childTrieNode);
 
         buildTrieFromJSON(childData, childTrieNode);
       }
     };
 
     buildTrieFromJSON(jsonData, trie.rootNode);
+    trie.buildFailureLinks();
     return trie;
   }
 
@@ -125,7 +111,7 @@ export class KeywordSearchMachine {
       const { node, trieNodeData } = stack.pop()!;
       node.isLastWord = trieNodeData.isLastWord;
       node.output = trieNodeData.output;
-      node.failNodeId = trieNodeData.fail;
+      node.fail = trieNodeData.fail;
 
       for (const charCode in trieNodeData.children) {
         const childData = trieNodeData.children[charCode];
@@ -135,7 +121,6 @@ export class KeywordSearchMachine {
         stack.push({ node: childTrieNode, trieNodeData: childData });
       }
     }
-
     trie.buildFailureLinks();
     return trie;
   }
@@ -157,29 +142,16 @@ export class KeywordSearchMachine {
     currentRoot.isLastWord = true;
     currentRoot.output.push(keyword);
 
-    // build failure graph
-    this.buildFailureGraph();
+    // build failure link
+    this.buildFailureLinks();
   }
 
-  private assignUniqueIds(): void {
-    let idCounter = 0;
-    const stack: TrieNode[] = [this.rootNode];
-
-    while (stack.length > 0) {
-      const node = stack.pop()!;
-      node.failNodeId = idCounter++;
-      for (const child of node.children.values()) {
-        stack.push(child);
-      }
-    }
-  }
-
-  private buildFailureLinks(): void {
+  public buildFailureLinks(): void {
     const queue: TrieNode[] = [];
-    this.rootNode.failNodeId = null;
+    this.rootNode.fail = null;
 
     for (const child of this.rootNode.children.values()) {
-      child.failNode = this.rootNode;
+      child.fail = this.rootNode;
       queue.push(child);
     }
 
@@ -187,24 +159,19 @@ export class KeywordSearchMachine {
       const node = queue.shift()!;
 
       for (const [charCode, child] of node.children) {
-        let failure = node.failNode;
+        let failure = node.fail;
 
         while (failure !== null && !failure.children.has(charCode)) {
-          failure = failure.failNode!;
+          failure = failure.fail!;
         }
 
-        child.failNode = failure?.children.get(charCode) || this.rootNode;
+        child.fail = failure?.children.get(charCode) || this.rootNode;
 
-        child.output = [...child.output, ...child.failNode.output];
+        child.output = [...child.output, ...child.fail.output];
 
         queue.push(child);
       }
     }
-  }
-
-  private buildFailureGraph() {
-    this.assignUniqueIds();
-    this.buildFailureLinks();
   }
 
   public searchInSentence(sentence: string): string[] {
@@ -218,7 +185,7 @@ export class KeywordSearchMachine {
         !currentRoot.children.has(indexOfCharacter) &&
         currentRoot !== this.rootNode
       ) {
-        currentRoot = currentRoot.failNode!;
+        currentRoot = currentRoot.fail!;
       }
 
       currentRoot = currentRoot.children.get(indexOfCharacter) || this.rootNode;

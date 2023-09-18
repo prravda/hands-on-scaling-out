@@ -1,6 +1,5 @@
 export const KeywordListWithoutWhiteSpace = [
   "컬쳐랜드",
-  "보리 먹인 돼지",
   "스틸북",
   "ps4",
   "ps5",
@@ -14,16 +13,31 @@ export const KeywordListWithoutWhiteSpace = [
   "문상",
   "CR123A",
   "cr123a",
-  "삼겹살",
   "치킨",
   "치킨너겟",
+  "마이프로틴",
+  "먹태깡",
+  "캣츠랑",
+  "보먹돼",
+  "노래방새우깡",
+  "삼겹살",
+  "목살",
+  "스위치",
+  "고등어",
+  "순살",
+  "바야밴드",
+  "직원할인",
+  "프로틴",
 ];
 
 export const KeywordListWithWhiteSpace = [
+  "노래방 새우깡",
+  "보리 먹인 돼지",
   "컬렉터즈 에디션",
   "apple vision pro",
   "macbook pro",
   "외장 ssd",
+  "닌텐도 스위치",
 ];
 
 interface TitleAndExpectedKeywordList {
