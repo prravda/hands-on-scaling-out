@@ -1,9 +1,39 @@
 import { KeywordSearchMachine } from "./trie-with-aho-corasick";
 import {
   ExampleTitleAndExpectedKeywordList,
+  KeywordListForTesting,
   KeywordListWithoutWhiteSpace,
   KeywordListWithWhiteSpace,
 } from "./test-dataset-for-trie";
+
+describe("testing for trie, simply finding keyword exist or not in trie", () => {
+  let keywordSearchMachine: KeywordSearchMachine;
+
+  beforeEach(() => {
+    keywordSearchMachine = new KeywordSearchMachine();
+    // inserting keywords
+    for (const word of [
+      ...KeywordListWithoutWhiteSpace,
+      ...KeywordListWithWhiteSpace,
+    ]) {
+      keywordSearchMachine.insert(word);
+    }
+  });
+
+  it("should return true for the result of finding exist keywords", () => {
+    const { EXIST } = KeywordListForTesting;
+    for (const existKeyword of EXIST) {
+      expect(keywordSearchMachine.searchKeyword(existKeyword)).toBe(true);
+    }
+  });
+
+  it("should return false for the result of finding exist keywords", () => {
+    const { NOT_EXIST } = KeywordListForTesting;
+    for (const existKeyword of NOT_EXIST) {
+      expect(keywordSearchMachine.searchKeyword(existKeyword)).toBe(false);
+    }
+  });
+});
 
 describe("testing for trie and aho-corasick pattern matching searching", () => {
   let keywordSearchMachine: KeywordSearchMachine;
