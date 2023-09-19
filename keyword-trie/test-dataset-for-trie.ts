@@ -45,6 +45,11 @@ interface TitleAndExpectedKeywordList {
   expectedKeywordList: string[];
 }
 
+export const KeywordListForTesting = {
+  EXIST: ["캣츠랑", "치킨", "치킨너겟"],
+  NOT_EXIST: ["멍츠랑", "백숙", "너겟"],
+};
+
 export const ExampleTitleAndExpectedKeywordList: TitleAndExpectedKeywordList[] =
   [
     {
