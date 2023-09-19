@@ -1,0 +1,79 @@
+version: "3.9"
+
+services:
+  keyword-search-machine:
+    hostname: keyword-search-machine
+    container_name: keyword-search-machine
+    build:
+      context: ./keyword-trie
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - dragonfly-write
+    networks:
+      - dragonfly-ha
+
+  dragonfly-write:
+    hostname: dragonfly-write
+    container_name: dragonfly-write
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    command: dragonfly --cluster_mode=emulated
+    ulimits:
+      memlock: -1
+    environment:
+      - DFLY_PASSWORD=test-dragonfly
+    ports:
+      - "6379:6379"
+    networks:
+      - dragonfly-ha
+    volumes:
+      - dragonfly-write:/data
+
+  dragonfly-read-only-0:
+    hostname: dragonfly-read-only-0
+    container_name: dragonfly-read-only-0
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    ports:
+      - "6380:6379"
+    command: dragonfly --cluster_mode=emulated --replicaof dragonfly-write:6379
+    ulimits:
+      memlock: -1
+    environment:
+      - DFLY_PASSWORD=test-dragonfly
+    depends_on:
+      - dragonfly-write
+    networks:
+      - dragonfly-ha
+    volumes:
+      - dragonfly-read-only-0:/data
+
+  dragonfly-read-only-1:
+    hostname: dragonfly-read-only-1
+    container_name: dragonfly-read-only-1
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    ports:
+      - "6381:6379"
+    command: dragonfly --cluster_mode=emulated --replicaof dragonfly-write:6379
+    ulimits:
+      memlock: -1
+    environment:
+      - DFLY_PASSWORD=test-dragonfly
+    depends_on:
+      - dragonfly-write
+    networks:
+      - dragonfly-ha
+    volumes:
+      - dragonfly-read-only-1:/data
+
+networks:
+  dragonfly-ha:
+    name: dragonfly-ha
+    driver: bridge
+
+volumes:
+  dragonfly-write:
+    name: dragonfly-write
+  dragonfly-read-only-0:
+    name: dragonfly-read-only-0
+  dragonfly-read-only-1:
+    name: dragonfly-read-only-1
