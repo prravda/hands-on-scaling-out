@@ -14,7 +14,7 @@ export class TrieNode {
     const jsonTrieNode: Record<string, any> = {
       isLastWord: this.isLastWord,
       children: {},
-      fail: this.fail,
+      fail: null,
       output: this.output,
     };
 
@@ -31,7 +31,7 @@ export class TrieNode {
     const jsonTrieNode: Record<string, any> = {
       isLastWord: this.isLastWord,
       children: {},
-      fail: this.fail,
+      fail: null,
       output: this.output,
     };
 
@@ -172,6 +172,23 @@ export class KeywordSearchMachine {
         queue.push(child);
       }
     }
+  }
+
+  public searchKeyword(keyword: string): boolean {
+    let currentNode = this.rootNode;
+
+    for (const character of keyword) {
+      const indexOfCharacter = this.charToIndex(character);
+      const nextNode = currentNode.children.get(indexOfCharacter);
+
+      if (!nextNode) {
+        return false;
+      }
+
+      currentNode = nextNode;
+    }
+
+    return currentNode.isLastWord;
   }
 
   public searchInSentence(sentence: string): string[] {
