@@ -1,4 +1,4 @@
-import { KeywordSearchMachine } from "./trie-with-aho-corasick";
+import { KeywordSearchMachine } from "./trie";
 import {
   ExampleTitleAndExpectedKeywordList,
   KeywordListForTesting,
@@ -113,7 +113,7 @@ describe("testing for trie serialization / de-serialization", () => {
     expect(parsedResult).toBeInstanceOf(KeywordSearchMachine);
   });
 
-  it("should works well when find keywords from a string", () => {
+  it("should work well when finding keywords from a string", () => {
     const serializedResult = keywordSearchMachineInstance.toJSON();
     const parsedResult = KeywordSearchMachine.fromJSON(serializedResult);
 
@@ -153,7 +153,7 @@ describe("testing for trie serialization / de-serialization in iterative way", (
     expect(parsedResult).toBeInstanceOf(KeywordSearchMachine);
   });
 
-  it("should works well when find keywords from a string", () => {
+  it("should work well when finding keywords from a string", () => {
     const serializedResult = keywordSearchMachineInstance.toJSONIteratively();
     const parsedResult =
       KeywordSearchMachine.fromJSONIteratively(serializedResult);
@@ -193,7 +193,7 @@ describe("testing for trie serialization / de-serialization using trampoline", (
     expect(parsedResult).toBeInstanceOf(KeywordSearchMachine);
   });
 
-  it("should works well when find keywords from a string", () => {
+  it("should work well when finding keywords from a string", () => {
     const serializedResult = keywordSearchMachineInstance.toJSONRecursively();
     const parsedResult =
       KeywordSearchMachine.fromJSONRecursively(serializedResult);

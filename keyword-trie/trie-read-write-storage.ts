@@ -1,5 +1,5 @@
 import { Cluster } from "ioredis";
-import { KeywordSearchMachine } from "./trie-with-aho-corasick";
+import { KeywordSearchMachine } from "./trie";
 import { KeywordListWithoutWhiteSpace } from "./test-dataset-for-trie";
 
 // configure dragonfly replicas and connect them into a cluster
