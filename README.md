@@ -1,14 +1,16 @@
-# Hands on: scaling-out application using docker-compose
+# Hands on: scaling-out application, k-v storage using docker-compose
 
 ---
 
 # Goal
-- scaling out application made by `node.js`
+- scaling out application made by `node.js` and other components of application such as k-v storage.
 # Cases
 ## Message broker
 - getting requests using message broker(`memphis`)
 ## HTTP server
-- getting requests using HTTP request (`POST`) from node.js application made by `express` 
+- getting requests using HTTP request (`POST`) from node.js application made by `express`
+## K-V storage
+- replication and clustering using `dragonflydb` (almost same with `redis`)
 
 ---
 
@@ -257,10 +259,146 @@ docker compose -f docker-compose.reqres.yaml up --scale server-express=3 --build
 ![result of load balancing of http servers](./statics/4-result-of-load-balancing-of-http-server.png)
 - The requests are also distributed well
 
+## K-V storage
+### Configuration and definition in `docker-compose.dragonfly.yaml`
+```yaml
+version: "3.9"
+
+services:
+  dragonfly-write:
+    hostname: dragonfly-write
+    container_name: dragonfly-write
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    command: dragonfly --cluster_mode=emulated
+    ulimits:
+      memlock: -1
+    environment:
+      - DFLY_PASSWORD=test-dragonfly
+    ports:
+      - "6379:6379"
+    networks:
+      - dragonfly-ha
+    volumes:
+      - dragonfly-write:/data
+
+  dragonfly-read-only-0:
+    hostname: dragonfly-read-only-0
+    container_name: dragonfly-read-only-0
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    ports:
+      - "6380:6379"
+    command: dragonfly --cluster_mode=emulated --replicaof dragonfly-write:6379
+    ulimits:
+      memlock: -1
+    environment:
+      - DFLY_PASSWORD=test-dragonfly
+    depends_on:
+      - dragonfly-write
+    networks:
+      - dragonfly-ha
+    volumes:
+      - dragonfly-read-only-0:/data
+
+  dragonfly-read-only-1:
+    hostname: dragonfly-read-only-1
+    container_name: dragonfly-read-only-1
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    ports:
+      - "6381:6379"
+    command: dragonfly --cluster_mode=emulated --replicaof dragonfly-write:6379
+    ulimits:
+      memlock: -1
+    environment:
+      - DFLY_PASSWORD=test-dragonfly
+    depends_on:
+      - dragonfly-write
+    networks:
+      - dragonfly-ha
+    volumes:
+      - dragonfly-read-only-1:/data
+
+networks:
+  dragonfly-ha:
+    name: dragonfly-ha
+    driver: bridge
+
+volumes:
+  dragonfly-write:
+    name: dragonfly-write
+  dragonfly-read-only-0:
+    name: dragonfly-read-only-0
+  dragonfly-read-only-1:
+    name: dragonfly-read-only-1
+```
+- Easily configure with `command`
+  - In master node, just run this command `dragonfly --cluster_mode=emulated`
+    - It notates this instance(s) is(are) running on cluster mode
+  - In slave nodes, run `dragonfly --cluster_mode=emulated --replicaof dragonfly-write:6379`
+    - `--replicaof {masterNodeHost}:{masterNodePortNumber}` set this node to a slave node of master node
+- And for focusing on k-v storage clustering, I excepted node.js application from `service`.
+
+### Redis client
+```typescript
+import { Cluster } from "ioredis";
+
+const dragonFlyCluster = new Cluster(
+    [
+        { host: "dragonfly-write", port: 6379 },
+        { host: "dragonfly-read-only-0", port: 6380 },
+        { host: "dragonfly-read-only-1", port: 6381 },
+    ],
+    {
+        scaleReads: "slave",
+        redisOptions: {
+            password: "test-dragonfly",
+        },
+    }
+);
+```
+
+
+- Using [ioredis](https://github.com/redis/ioredis), the node.js pretty nice redis client, can easily connect to the redis cluster which be defined before.
+
+```typescript
+async function testForReadAndWrite() {
+    // save to a write-available node
+    await dragonFlyCluster.set("keywords", serializedResult);
+
+    // read from read-only nodes
+    const resultFromReadOnly = await dragonFlyCluster.get("keywords");
+
+    // null check
+    if (resultFromReadOnly) {
+        // deserialization
+        const deserializedResult = KeywordSearchMachine.fromJSON(
+            JSON.parse(resultFromReadOnly)
+        );
+
+        // detecting keyword from a string
+        const detectedKeywords = deserializedResult.searchInSentence(
+            "[ 회기농장쇼핑특가 ] 크록스 바야밴드 클로그 28,000 (컬쳐랜드 문상신공 적용시 20,000까지 가능)"
+        );
+
+        // showing the result
+        console.log(`result: ${detectedKeywords}`);
+    }
+}
+```
+
+- After cluster connect configuration with `scaleReads: "slave"`, the read and read-related commands running on slave nodes, and write and write-related command running on master nodes.
+- The example of this part using `trie` data structure and `aho-corasick` algorithm for pattern matching(keyword detection from string)
+
+### Running application
+```shell
+docker compose -f docker-compose.dragonfly.yaml up --build -d
+```
+
 ---
 
 # How it works?
 ## Message broker
 - TBA
 ## Load balancer
+- TBA
+## K-V storage
 - TBA
