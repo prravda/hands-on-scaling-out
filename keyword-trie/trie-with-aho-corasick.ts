@@ -1,13 +1,39 @@
+import { trampoline, TrampolineFunction } from "./trampoline";
+
 export class TrieNode {
-  children: Map<number, TrieNode>;
-  isLastWord: boolean;
-  fail: TrieNode | null;
-  output: string[];
+  accessor children: Map<number, TrieNode>;
+  accessor isLastWord: boolean;
+  accessor fail: TrieNode | null;
+  accessor output: string[];
   constructor() {
     this.children = new Map<number, TrieNode>();
     this.isLastWord = false;
     this.fail = null;
     this.output = [];
+  }
+
+  private toJSONTrampoline(): TrampolineFunction<Record<string, any>> {
+    const node = this;
+
+    return function () {
+      const jsonTrieNode: Record<string, any> = {
+        isLastWord: node.isLastWord,
+        children: {},
+        fail: null,
+        output: node.output,
+      };
+
+      for (const [charCode, child] of node.children) {
+        jsonTrieNode.children[charCode] = child.toJSONTrampoline()();
+      }
+
+      return jsonTrieNode;
+    };
+  }
+
+  public toJSONWithRecursively(): Record<string, any> {
+    const trampolinedRecursiveToJSON = trampoline(this.toJSONTrampoline());
+    return trampolinedRecursiveToJSON();
   }
 
   public toJSON(): Record<string, any> {
@@ -26,8 +52,6 @@ export class TrieNode {
   }
 
   public toJSONIteratively(): Record<string, any> {
-    // iterative version of toJSON method
-    // for avoiding exceeding the maximum call stack
     const jsonTrieNode: Record<string, any> = {
       isLastWord: this.isLastWord,
       children: {},
@@ -59,9 +83,9 @@ export class TrieNode {
 }
 
 export class KeywordSearchMachine {
-  private readonly rootNode: TrieNode;
-  constructor() {
-    this.rootNode = new TrieNode();
+  accessor rootNode: TrieNode;
+  constructor(rootNode?: TrieNode) {
+    this.rootNode = rootNode ? rootNode : new TrieNode();
   }
   public toJSON(): Record<string, any> {
     return this.rootNode.toJSON();
@@ -69,6 +93,10 @@ export class KeywordSearchMachine {
 
   public toJSONIteratively(): Record<string, any> {
     return this.rootNode.toJSONIteratively();
+  }
+
+  public toJSONRecursively(): Record<string, any> {
+    return this.rootNode.toJSONWithRecursively();
   }
 
   public static fromJSON(jsonData: Record<string, any>): KeywordSearchMachine {
@@ -97,6 +125,39 @@ export class KeywordSearchMachine {
     return trie;
   }
 
+  public static fromJSONRecursively(jsonData: Record<string, any>) {
+    const rootNode = new TrieNode();
+
+    const buildTrieFromJSONTrampoline = (
+      trieNodeData: Record<string, any>,
+      trieNode: TrieNode
+    ) => {
+      return function () {
+        trieNode.isLastWord = trieNodeData.isLastWord;
+        trieNode.output = trieNodeData.output;
+        trieNode.fail = trieNodeData.fail;
+
+        for (const charCode in trieNodeData.children) {
+          const childData = trieNodeData.children[charCode];
+          const childTrieNode = new TrieNode();
+          trieNode.children.set(Number(charCode), childTrieNode);
+
+          buildTrieFromJSONTrampoline(childData, childTrieNode)();
+        }
+      };
+    };
+
+    const trampolinedBuildTrieFromJSON = trampoline(
+      buildTrieFromJSONTrampoline(jsonData, rootNode)
+    );
+    trampolinedBuildTrieFromJSON();
+
+    const trie = new KeywordSearchMachine(rootNode);
+    trie.buildFailureLinks();
+
+    return trie;
+  }
+
   public static fromJSONIteratively(
     jsonData: Record<string, any>
   ): KeywordSearchMachine {
@@ -121,6 +182,7 @@ export class KeywordSearchMachine {
         stack.push({ node: childTrieNode, trieNodeData: childData });
       }
     }
+
     trie.buildFailureLinks();
     return trie;
   }
@@ -142,11 +204,10 @@ export class KeywordSearchMachine {
     currentRoot.isLastWord = true;
     currentRoot.output.push(keyword);
 
-    // build failure link
     this.buildFailureLinks();
   }
 
-  public buildFailureLinks(): void {
+  private buildFailureLinks(): void {
     const queue: TrieNode[] = [];
     this.rootNode.fail = null;
 

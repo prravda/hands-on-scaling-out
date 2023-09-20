@@ -164,3 +164,43 @@ describe("testing for trie serialization / de-serialization in iterative way", (
     expect(result.sort()).toEqual(expectedKeywordList.sort());
   });
 });
+
+describe("testing for trie serialization / de-serialization using trampoline", () => {
+  let keywordSearchMachineInstance: KeywordSearchMachine;
+  beforeEach(() => {
+    keywordSearchMachineInstance = new KeywordSearchMachine();
+    // insert keywords into trie
+    for (const word of [
+      ...KeywordListWithoutWhiteSpace,
+      ...KeywordListWithWhiteSpace,
+    ]) {
+      keywordSearchMachineInstance.insert(word);
+    }
+  });
+
+  it("should be serialized to JSON", () => {
+    const serializedResult = keywordSearchMachineInstance.toJSONRecursively();
+    expect(serializedResult).toBeInstanceOf(Object);
+  });
+
+  it("should be parsed into KeywordSearchMachine instance from serialized result", () => {
+    const serializedResult = keywordSearchMachineInstance.toJSONRecursively();
+    expect(() =>
+      KeywordSearchMachine.fromJSONRecursively(serializedResult)
+    ).not.toThrowError();
+    const parsedResult =
+      KeywordSearchMachine.fromJSONRecursively(serializedResult);
+    expect(parsedResult).toBeInstanceOf(KeywordSearchMachine);
+  });
+
+  it("should works well when find keywords from a string", () => {
+    const serializedResult = keywordSearchMachineInstance.toJSONRecursively();
+    const parsedResult =
+      KeywordSearchMachine.fromJSONRecursively(serializedResult);
+
+    const { title, expectedKeywordList } =
+      ExampleTitleAndExpectedKeywordList[0];
+    const result = parsedResult.searchInSentence(title);
+    expect(result.sort()).toEqual(expectedKeywordList.sort());
+  });
+});
