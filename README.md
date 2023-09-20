@@ -269,11 +269,14 @@ services:
     hostname: dragonfly-write
     container_name: dragonfly-write
     image: docker.dragonflydb.io/dragonflydb/dragonfly
-    command: dragonfly --cluster_mode=emulated
+    entrypoint:
+      - dragonfly
+    command:
+      - --cluster_mode=emulated
+      - --requirepass=test-dragonfly
+      - --masterauth=test-dragonfly
     ulimits:
       memlock: -1
-    environment:
-      - DFLY_PASSWORD=test-dragonfly
     ports:
       - "6379:6379"
     networks:
@@ -287,11 +290,16 @@ services:
     image: docker.dragonflydb.io/dragonflydb/dragonfly
     ports:
       - "6380:6379"
-    command: dragonfly --cluster_mode=emulated --replicaof dragonfly-write:6379
+    entrypoint:
+      - dragonfly
+    command:
+      - --cluster_mode=emulated
+      - --requirepass=test-dragonfly
+      - --masterauth=test-dragonfly
+      - --replicaof
+      - dragonfly-write:6379
     ulimits:
       memlock: -1
-    environment:
-      - DFLY_PASSWORD=test-dragonfly
     depends_on:
       - dragonfly-write
     networks:
@@ -305,11 +313,16 @@ services:
     image: docker.dragonflydb.io/dragonflydb/dragonfly
     ports:
       - "6381:6379"
-    command: dragonfly --cluster_mode=emulated --replicaof dragonfly-write:6379
+    entrypoint:
+      - dragonfly
+    command:
+      - --cluster_mode=emulated
+      - --requirepass=test-dragonfly
+      - --masterauth=test-dragonfly
+      - --replicaof
+      - dragonfly-write:6379
     ulimits:
       memlock: -1
-    environment:
-      - DFLY_PASSWORD=test-dragonfly
     depends_on:
       - dragonfly-write
     networks:
