@@ -1,10 +1,10 @@
 import { trampoline, TrampolineFunction } from "./trampoline";
 
 export class TrieNode {
-  accessor children: Map<number, TrieNode>;
-  accessor isLastWord: boolean;
-  accessor fail: TrieNode | null;
-  accessor output: string[];
+  children: Map<number, TrieNode>;
+  isLastWord: boolean;
+  fail: TrieNode | null;
+  output: string[];
   constructor() {
     this.children = new Map<number, TrieNode>();
     this.isLastWord = false;
@@ -83,7 +83,7 @@ export class TrieNode {
 }
 
 export class KeywordSearchMachine {
-  accessor rootNode: TrieNode;
+  rootNode: TrieNode;
   constructor(rootNode?: TrieNode) {
     this.rootNode = rootNode ? rootNode : new TrieNode();
   }
@@ -205,6 +205,42 @@ export class KeywordSearchMachine {
     currentRoot.output.push(keyword);
 
     this.buildFailureLinks();
+  }
+
+  public delete(keyword: string) {
+    let currentRoot = this.rootNode;
+    const parentStack: TrieNode[] = [];
+
+    for (const character of keyword) {
+      const indexOfCharacter = this.charToIndex(character);
+
+      if (!currentRoot.children.has(indexOfCharacter)) {
+        return;
+      }
+
+      parentStack.push(currentRoot);
+      currentRoot = currentRoot.children.get(indexOfCharacter)!;
+    }
+
+    if (!currentRoot.isLastWord) {
+      return;
+    }
+
+    currentRoot.isLastWord = false;
+
+    while (parentStack.length > 0) {
+      const parentNodeOfNodeToDelete = parentStack.pop()!;
+      const charCodeToRemove = this.charToIndex(keyword[parentStack.length]);
+
+      if (
+        parentNodeOfNodeToDelete.children.size === 1 &&
+        !parentNodeOfNodeToDelete.children.get(charCodeToRemove)!.isLastWord
+      ) {
+        parentNodeOfNodeToDelete.children.delete(charCodeToRemove);
+      } else {
+        break;
+      }
+    }
   }
 
   private buildFailureLinks(): void {

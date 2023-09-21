@@ -4,6 +4,7 @@ import {
   KeywordListForTesting,
   KeywordListWithoutWhiteSpace,
   KeywordListWithWhiteSpace,
+  TestSuiteForDelete,
 } from "./test-dataset-for-trie";
 
 describe("testing for trie, simply finding keyword exist or not in trie", () => {
@@ -70,17 +71,51 @@ describe("testing for trie and aho-corasick pattern matching searching", () => {
     expect(result.sort()).toEqual(expectedKeywordList.sort());
   });
 
-  it("[ case 2 ] should find all matched keywords as a list", () => {
+  it("[ case 3 ] should find all matched keywords as a list", () => {
     const { title, expectedKeywordList } =
       ExampleTitleAndExpectedKeywordList[2];
     const result = keywordSearchMachine.searchInSentence(title);
     expect(result.sort()).toEqual(expectedKeywordList.sort());
   });
 
-  it("[ case 3 ] should find all matched keywords as a list", () => {
+  it("[ case 4 ] should find all matched keywords as a list", () => {
     const { title, expectedKeywordList } =
       ExampleTitleAndExpectedKeywordList[3];
     const result = keywordSearchMachine.searchInSentence(title);
+    expect(result.sort()).toEqual(expectedKeywordList.sort());
+  });
+});
+
+describe("testing for deletion", () => {
+  let keywordSearchMachineInstance: KeywordSearchMachine;
+
+  beforeEach(() => {
+    keywordSearchMachineInstance = new KeywordSearchMachine();
+    // insert keywords into trie
+    for (const word of [
+      ...KeywordListWithoutWhiteSpace,
+      ...KeywordListWithWhiteSpace,
+    ]) {
+      keywordSearchMachineInstance.insert(word);
+    }
+  });
+
+  it("should not found a keyword which be removed", () => {
+    const { keywordToDelete, expectedKeywordList, title } =
+      TestSuiteForDelete[0];
+    keywordSearchMachineInstance.delete(keywordToDelete);
+    const result = keywordSearchMachineInstance.searchInSentence(title);
+    expect(result.sort()).toEqual(expectedKeywordList.sort());
+  });
+
+  it("ignore removing not existed keyword", () => {
+    const { keywordToDelete, expectedKeywordList, title } =
+      TestSuiteForDelete[1];
+    expect(() =>
+      keywordSearchMachineInstance.delete(keywordToDelete)
+    ).not.toThrowError();
+    keywordSearchMachineInstance.delete(keywordToDelete);
+    const result = keywordSearchMachineInstance.searchInSentence(title);
     expect(result.sort()).toEqual(expectedKeywordList.sort());
   });
 });

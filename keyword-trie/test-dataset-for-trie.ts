@@ -245,3 +245,21 @@ export const ExampleTitleAndExpectedKeywordList: TitleAndExpectedKeywordList[] =
       expectedKeywordList: ["외장 ssd"],
     },
   ];
+
+interface TestSuiteForDeletion {
+  keywordToDelete: string;
+  expectedKeywordList: string[];
+  title: string;
+}
+export const TestSuiteForDelete: TestSuiteForDeletion[] = [
+  {
+    keywordToDelete: "삼겹살",
+    title: "보먹돼 삼겹살/목살 할인",
+    expectedKeywordList: ["보먹돼", "목살"],
+  },
+  {
+    keywordToDelete: "keywordDoesNotExist",
+    title: "보먹돼 삼겹살/목살 할인",
+    expectedKeywordList: ["보먹돼", "목살", "삼겹살"],
+  },
+];
