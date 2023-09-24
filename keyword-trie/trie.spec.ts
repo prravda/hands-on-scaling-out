@@ -18,6 +18,7 @@ describe("testing for trie, simply finding keyword exist or not in trie", () => 
       ...KeywordListWithWhiteSpace,
     ]) {
       keywordSearchMachine.insert(word);
+      keywordSearchMachine.buildFailureLinks();
     }
   });
 
@@ -47,6 +48,7 @@ describe("testing for trie and aho-corasick pattern matching searching", () => {
       ...KeywordListWithWhiteSpace,
     ]) {
       keywordSearchMachine.insert(word);
+      keywordSearchMachine.buildFailureLinks();
     }
   });
 
@@ -97,6 +99,7 @@ describe("testing for deletion", () => {
       ...KeywordListWithWhiteSpace,
     ]) {
       keywordSearchMachineInstance.insert(word);
+      keywordSearchMachineInstance.buildFailureLinks();
     }
   });
 
@@ -154,6 +157,7 @@ describe("testing for trie serialization / de-serialization", () => {
 
     const { title, expectedKeywordList } =
       ExampleTitleAndExpectedKeywordList[0];
+    parsedResult.buildFailureLinks();
     const result = parsedResult.searchInSentence(title);
     expect(result.sort()).toEqual(expectedKeywordList.sort());
   });
@@ -195,6 +199,7 @@ describe("testing for trie serialization / de-serialization in iterative way", (
 
     const { title, expectedKeywordList } =
       ExampleTitleAndExpectedKeywordList[0];
+    parsedResult.buildFailureLinks();
     const result = parsedResult.searchInSentence(title);
     expect(result.sort()).toEqual(expectedKeywordList.sort());
   });
@@ -235,6 +240,7 @@ describe("testing for trie serialization / de-serialization using trampoline", (
 
     const { title, expectedKeywordList } =
       ExampleTitleAndExpectedKeywordList[0];
+    parsedResult.buildFailureLinks();
     const result = parsedResult.searchInSentence(title);
     expect(result.sort()).toEqual(expectedKeywordList.sort());
   });
