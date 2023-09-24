@@ -39,7 +39,6 @@ describe("testing for trie, simply finding keyword exist or not in trie", () => 
 
 describe("testing for trie and aho-corasick pattern matching searching", () => {
   let keywordSearchMachine: KeywordSearchMachine;
-
   beforeEach(() => {
     keywordSearchMachine = new KeywordSearchMachine();
     // inserting keywords
@@ -243,5 +242,45 @@ describe("testing for trie serialization / de-serialization using trampoline", (
     parsedResult.buildFailureLinks();
     const result = parsedResult.searchInSentence(title);
     expect(result.sort()).toEqual(expectedKeywordList.sort());
+  });
+
+  describe("testing for building failure link", () => {
+    let instanceA: KeywordSearchMachine;
+    let instanceB: KeywordSearchMachine;
+    beforeEach(() => {
+      instanceA = new KeywordSearchMachine();
+      // insert keywords into trie
+      for (const word of [
+        ...KeywordListWithoutWhiteSpace.slice(0, 5),
+        ...KeywordListWithWhiteSpace.slice(0, 5),
+      ]) {
+        instanceA.insert(word);
+      }
+
+      instanceB = new KeywordSearchMachine();
+      // insert keywords into trie
+      for (const word of [
+        ...KeywordListWithoutWhiteSpace.slice(0, 5),
+        ...KeywordListWithWhiteSpace.slice(0, 5),
+      ]) {
+        instanceB.insert(word);
+      }
+    });
+
+    it("should assure the same result to same input", () => {
+      instanceA.buildFailureLinks();
+      instanceB.buildFailureLinks();
+
+      expect(instanceA).toStrictEqual(instanceB);
+    });
+
+    it("should assure the idempotency", () => {
+      instanceA.buildFailureLinks();
+
+      instanceB.buildFailureLinks();
+      instanceB.buildFailureLinks();
+
+      expect(instanceA).toStrictEqual(instanceB);
+    });
   });
 });
