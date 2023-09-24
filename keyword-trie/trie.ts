@@ -1,15 +1,15 @@
 import { trampoline, TrampolineFunction } from "./trampoline";
 
 export class TrieNode {
-  children: Map<number, TrieNode>;
+  children: Map<string, TrieNode>;
   isLastWord: boolean;
   fail: TrieNode | null;
-  output: string[];
+  output: Set<string>;
   constructor() {
-    this.children = new Map<number, TrieNode>();
+    this.children = new Map<string, TrieNode>();
     this.isLastWord = false;
     this.fail = null;
-    this.output = [];
+    this.output = new Set<string>();
   }
 
   private toJSONTrampoline(): TrampolineFunction<Record<string, any>> {
@@ -20,7 +20,7 @@ export class TrieNode {
         isLastWord: node.isLastWord,
         children: {},
         fail: null,
-        output: node.output,
+        output: [...node.output],
       };
 
       for (const [charCode, child] of node.children) {
@@ -41,7 +41,7 @@ export class TrieNode {
       isLastWord: this.isLastWord,
       children: {},
       fail: null,
-      output: this.output,
+      output: [...this.output],
     };
 
     for (const [charCode, child] of this.children) {
@@ -56,7 +56,7 @@ export class TrieNode {
       isLastWord: this.isLastWord,
       children: {},
       fail: null,
-      output: this.output,
+      output: [...this.output],
     };
 
     const stack: {
@@ -71,7 +71,7 @@ export class TrieNode {
           isLastWord: child.isLastWord,
           children: {},
           fail: child.fail,
-          output: child.output,
+          output: [...child.output],
         };
         jsonTrieNode.children[charCode] = childJSONTrieNode;
         stack.push({ node: child, jsonTrieNode: childJSONTrieNode });
@@ -101,27 +101,26 @@ export class KeywordSearchMachine {
 
   public static fromJSON(jsonData: Record<string, any>): KeywordSearchMachine {
     const trie = new KeywordSearchMachine();
-    trie.rootNode.children = new Map<number, TrieNode>();
+    trie.rootNode.children = new Map<string, TrieNode>();
 
     const buildTrieFromJSON = (
       trieNodeData: Record<string, any>,
       trieNode: TrieNode
     ) => {
       trieNode.isLastWord = trieNodeData.isLastWord;
-      trieNode.output = trieNodeData.output;
+      trieNode.output = new Set(trieNodeData.output);
       trieNode.fail = trieNodeData.fail;
 
       for (const charCode in trieNodeData.children) {
         const childData = trieNodeData.children[charCode];
         const childTrieNode = new TrieNode();
-        trieNode.children.set(Number(charCode), childTrieNode);
+        trieNode.children.set(charCode, childTrieNode);
 
         buildTrieFromJSON(childData, childTrieNode);
       }
     };
 
     buildTrieFromJSON(jsonData, trie.rootNode);
-    trie.buildFailureLinks();
     return trie;
   }
 
@@ -134,13 +133,13 @@ export class KeywordSearchMachine {
     ) => {
       return function () {
         trieNode.isLastWord = trieNodeData.isLastWord;
-        trieNode.output = trieNodeData.output;
+        trieNode.output = new Set(trieNodeData.output);
         trieNode.fail = trieNodeData.fail;
 
         for (const charCode in trieNodeData.children) {
           const childData = trieNodeData.children[charCode];
           const childTrieNode = new TrieNode();
-          trieNode.children.set(Number(charCode), childTrieNode);
+          trieNode.children.set(charCode, childTrieNode);
 
           buildTrieFromJSONTrampoline(childData, childTrieNode)();
         }
@@ -152,17 +151,14 @@ export class KeywordSearchMachine {
     );
     trampolinedBuildTrieFromJSON();
 
-    const trie = new KeywordSearchMachine(rootNode);
-    trie.buildFailureLinks();
-
-    return trie;
+    return new KeywordSearchMachine(rootNode);
   }
 
   public static fromJSONIteratively(
     jsonData: Record<string, any>
   ): KeywordSearchMachine {
     const trie = new KeywordSearchMachine();
-    trie.rootNode.children = new Map<number, TrieNode>();
+    trie.rootNode.children = new Map<string, TrieNode>();
 
     const stack: { node: TrieNode; trieNodeData: Record<string, any> }[] = [
       { node: trie.rootNode, trieNodeData: jsonData },
@@ -171,24 +167,23 @@ export class KeywordSearchMachine {
     while (stack.length > 0) {
       const { node, trieNodeData } = stack.pop()!;
       node.isLastWord = trieNodeData.isLastWord;
-      node.output = trieNodeData.output;
+      node.output = new Set(trieNodeData.output);
       node.fail = trieNodeData.fail;
 
       for (const charCode in trieNodeData.children) {
         const childData = trieNodeData.children[charCode];
         const childTrieNode = new TrieNode();
-        node.children.set(Number(charCode), childTrieNode);
+        node.children.set(charCode, childTrieNode);
 
         stack.push({ node: childTrieNode, trieNodeData: childData });
       }
     }
 
-    trie.buildFailureLinks();
     return trie;
   }
 
-  private charToIndex(character: string): number {
-    return character.charCodeAt(0);
+  private charToIndex(character: string): string {
+    return String(character.charCodeAt(0));
   }
 
   public insert(keyword: string): void {
@@ -202,9 +197,7 @@ export class KeywordSearchMachine {
       currentRoot = currentRoot.children.get(indexOfCharacter)!;
     }
     currentRoot.isLastWord = true;
-    currentRoot.output.push(keyword);
-
-    this.buildFailureLinks();
+    currentRoot.output.add(keyword);
   }
 
   public delete(keyword: string) {
@@ -243,7 +236,7 @@ export class KeywordSearchMachine {
     }
   }
 
-  private buildFailureLinks(): void {
+  public buildFailureLinks(): void {
     const queue: TrieNode[] = [];
     this.rootNode.fail = null;
 
@@ -264,7 +257,8 @@ export class KeywordSearchMachine {
 
         child.fail = failure?.children.get(charCode) || this.rootNode;
 
-        child.output = [...child.output, ...child.fail.output];
+        // child.output = [...child.output, ...child.fail.output];
+        child.fail.output.forEach(child.output.add, child.output);
 
         queue.push(child);
       }
@@ -303,10 +297,7 @@ export class KeywordSearchMachine {
       }
 
       currentRoot = currentRoot.children.get(indexOfCharacter) || this.rootNode;
-
-      for (const keyword of currentRoot.output) {
-        keywordsFound.push(keyword);
-      }
+      currentRoot.output.forEach((value) => keywordsFound.push(value));
     }
 
     return keywordsFound;
