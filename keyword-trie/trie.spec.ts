@@ -98,8 +98,8 @@ describe("testing for deletion", () => {
       ...KeywordListWithWhiteSpace,
     ]) {
       keywordSearchMachineInstance.insert(word);
-      keywordSearchMachineInstance.buildFailureLinks();
     }
+    keywordSearchMachineInstance.buildFailureLinks();
   });
 
   it("should not found a keyword which be removed", () => {
@@ -119,6 +119,66 @@ describe("testing for deletion", () => {
     keywordSearchMachineInstance.delete(keywordToDelete);
     const result = keywordSearchMachineInstance.searchInSentence(title);
     expect(result.sort()).toEqual(expectedKeywordList.sort());
+  });
+});
+
+describe("testing for deletion: a little bit more complex scenario", () => {
+  let instance: KeywordSearchMachine;
+
+  beforeEach(() => {
+    instance = new KeywordSearchMachine();
+  });
+
+  it("removing keyword scenario. 0", () => {
+    const mockKeywords = ["비비고", "비에고", "비에삼", "비비삼"];
+    mockKeywords.forEach((keyword) => instance.insert(keyword));
+
+    instance.delete("비비고");
+    instance.delete("비비삼");
+
+    instance.buildFailureLinks();
+
+    const result = instance.searchInSentence(
+      "비비고의 별명은 비에고, 비에삼, 그리고 비비삼이다."
+    );
+    expect(result.sort()).toStrictEqual(["비에고", "비에삼"].sort());
+  });
+
+  it("removing keyword scenario. 1", () => {
+    const mockKeywords = ["비비고", "비비고라니", "비비고병특"];
+    mockKeywords.forEach((keyword) => instance.insert(keyword));
+
+    instance.delete("비비고");
+
+    instance.buildFailureLinks();
+
+    const result = instance.searchInSentence(
+      "비비고의 별명은 비비고라니, 그리고 비비고병특이다."
+    );
+    expect(result.sort()).toStrictEqual(["비비고라니", "비비고병특"].sort());
+    expect(result).not.toContain("비비고");
+  });
+
+  it("removing keyword scenario. 2", () => {
+    const mockKeywords = [
+      "비비고",
+      "비비고병특",
+      "비비고라니",
+      "비비고병역특례",
+    ];
+    mockKeywords.forEach((keyword) => instance.insert(keyword));
+
+    instance.delete("비비고병특");
+
+    instance.buildFailureLinks();
+
+    const result = instance.searchInSentence(
+      "비비고의 별명은 비비고라니, 그리고 비비고병특이다. 여기서 병특은 준말이며, 비비고병역특례가 풀 네임이다."
+    );
+    expect(result.sort()).toStrictEqual(
+      ["비비고라니", "비비고", "비비고병역특례"].sort()
+    );
+    expect(result).not.toContain("비비고병특");
   });
 });
 

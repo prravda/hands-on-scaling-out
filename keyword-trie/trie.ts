@@ -219,7 +219,14 @@ export class KeywordSearchMachine {
       return;
     }
 
+    if (currentRoot.children.size > 0) {
+      currentRoot.output.delete(keyword);
+      currentRoot.isLastWord = false;
+      return;
+    }
+
     currentRoot.isLastWord = false;
+    currentRoot.output.delete(keyword);
 
     while (parentStack.length > 0) {
       const parentNodeOfNodeToDelete = parentStack.pop()!;
@@ -256,10 +263,7 @@ export class KeywordSearchMachine {
         }
 
         child.fail = failure?.children.get(charCode) || this.rootNode;
-
-        // child.output = [...child.output, ...child.fail.output];
-        child.fail.output.forEach(child.output.add, child.output);
-
+        child.output = new Set([...child.output, ...child.fail.output]);
         queue.push(child);
       }
     }
@@ -283,7 +287,7 @@ export class KeywordSearchMachine {
   }
 
   public searchInSentence(sentence: string): string[] {
-    const keywordsFound: string[] = [];
+    const keywordsFound: Set<string> = new Set<string>();
     let currentRoot = this.rootNode;
 
     for (const character of sentence) {
@@ -297,9 +301,9 @@ export class KeywordSearchMachine {
       }
 
       currentRoot = currentRoot.children.get(indexOfCharacter) || this.rootNode;
-      currentRoot.output.forEach((value) => keywordsFound.push(value));
+      currentRoot.output.forEach((value) => keywordsFound.add(value));
     }
 
-    return keywordsFound;
+    return [...keywordsFound];
   }
 }
