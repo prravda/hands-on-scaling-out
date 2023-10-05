@@ -17,6 +17,8 @@ services:
     build:
       context: ./rest-server
       dockerfile: Dockerfile
+    deploy:
+        replicas: 3
     expose:
       - "3000"
     restart: always

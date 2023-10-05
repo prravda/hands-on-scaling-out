@@ -203,6 +203,8 @@ services:
     build:
       context: ./rest-server
       dockerfile: Dockerfile
+    deploy:
+        replicas: 3
     expose:
       - "3000"
     restart: always
@@ -252,7 +254,7 @@ reqToServer();
 
 ### Start application (client, load balancer, and multiple server)
 ```shell
-docker compose -f docker-compose.reqres.yaml up --scale server-express=3 --build -d 
+docker compose -f docker-compose.reqres.yaml up --build -d 
 ```
 
 ### Result
